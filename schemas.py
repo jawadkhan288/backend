@@ -70,7 +70,7 @@ class CandidateUpdate(BaseModel):
 
 
 class CandidateStatusUpdate(BaseModel):
-    status: str = Field(description="One of: Applied, Screened, Interview, Offer, Hired")
+    status: str = Field(description="One of: Applied, Screened, Interview, Offer, Hired, Approved, Rejected")
 
 
 class CandidateOut(BaseModel):

@@ -14,11 +14,13 @@ from database import Base
 
 
 class CandidateStatus(str, enum.Enum):
-    Applied = "Applied"
-    Screened = "Screened"
+    Applied   = "Applied"
+    Screened  = "Screened"
     Interview = "Interview"
-    Offer = "Offer"
-    Hired = "Hired"
+    Offer     = "Offer"
+    Hired     = "Hired"
+    Approved  = "Approved"
+    Rejected  = "Rejected"
 
 
 class User(Base):
