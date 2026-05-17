@@ -7,8 +7,7 @@ POST /api/resumes/parse
   - No file storage — parse and discard
 """
 import os
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from auth import get_current_user
+from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from services.resume_parser import parse_resume
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -17,7 +16,6 @@ ALLOWED_EXTENSIONS = {"pdf", "docx", "doc", "json"}
 router = APIRouter(
     prefix="/api/resumes",
     tags=["Resume Parsing"],
-    dependencies=[Depends(get_current_user)],
 )
 
 
