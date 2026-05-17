@@ -1,0 +1,57 @@
+{
+  "personalDetails": {
+    "fullName": "Sarah Mitchell",
+    "email": "sarah.mitchell@email.com",
+    "phone": "+1 (555) 321-7890",
+    "location": "Seattle, WA",
+    "linkedin": "linkedin.com/in/sarahmitchell",
+    "portfolio": "sarahmitchell.dev"
+  },
+  "summary": "Senior Software Engineer with 7+ years of experience specializing in cloud-native applications and distributed systems. Passionate about building scalable, resilient software that solves real-world problems.",
+  "education": [
+    {
+      "degree": "Master of Science in Computer Science",
+      "institution": "University of Washington",
+      "year": "2015-2017",
+      "gpa": "3.9/4.0"
+    },
+    {
+      "degree": "Bachelor of Science in Mathematics",
+      "institution": "UCLA",
+      "year": "2011-2015",
+      "gpa": "3.7/4.0"
+    }
+  ],
+  "experience": [
+    {
+      "position": "Senior Software Engineer",
+      "company": "Amazon Web Services",
+      "duration": "2021 - Present",
+      "description": [
+        "Designed and implemented microservices handling 50K+ requests/second",
+        "Led migration of legacy monolith to event-driven architecture",
+        "Mentored 4 junior engineers and conducted 100+ code reviews"
+      ]
+    },
+    {
+      "position": "Software Engineer",
+      "company": "Microsoft",
+      "duration": "2017 - 2021",
+      "description": [
+        "Built real-time data pipeline processing 10TB/day using Azure Stream Analytics",
+        "Developed REST APIs and GraphQL services for internal developer platform",
+        "Reduced infrastructure costs by 35% through performance optimization"
+      ]
+    }
+  ],
+  "skills": {
+    "technical": ["Python", "Go", "TypeScript", "AWS", "Kubernetes", "Docker", "PostgreSQL", "Redis", "GraphQL", "Terraform"],
+    "soft": ["Technical Leadership", "Mentoring", "System Design", "Cross-team Collaboration"],
+    "languages": ["English (Native)", "Mandarin (Conversational)"]
+  },
+  "certifications": [
+    "AWS Solutions Architect Professional",
+    "Certified Kubernetes Administrator",
+    "Google Cloud Professional Data Engineer"
+  ]
+}

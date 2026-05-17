@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from routers.auth_router import router as auth_router
 from routers.candidate_router import router as candidate_router
+from routers.resume_router import router as resume_router
 
 load_dotenv()
 
@@ -46,6 +47,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(candidate_router)
+app.include_router(resume_router)
 
 
 # ─────────────────────────────────────────────────────────────
