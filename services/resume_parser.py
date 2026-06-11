@@ -2,15 +2,18 @@
 services/resume_parser.py — Resume text extraction and LLM-powered parsing.
 
 Supports: PDF, DOCX, JSON
-Uses Google Gemini for intelligent text → structured JSON conversion.
+Uses Groq (Llama 3.3 70B) for intelligent text → structured JSON conversion.
 """
 import json
 import re
+import logging
 from typing import Optional
 
 import fitz  # PyMuPDF
 from docx import Document
-import google.generativeai as genai
+from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -71,7 +74,7 @@ def parse_json_resume(file_bytes: bytes) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────
-#  LLM-Powered Parsing (Google Gemini)
+#  LLM-Powered Parsing (Groq — Llama 3.3 70B)
 # ─────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """You are an expert resume parser. Given raw text extracted from a resume, 
@@ -120,24 +123,33 @@ Rules:
 """
 
 
-def parse_resume_with_llm(raw_text: str, api_key: str, model_name: str = "gemini-2.0-flash") -> dict:
+def parse_resume_with_llm(raw_text: str, api_key: str) -> dict:
     """
-    Send extracted resume text to Google Gemini and get structured JSON back.
+    Send extracted resume text to Groq (Llama 3.3 70B) and get structured JSON back.
+    Uses the OpenAI-compatible Groq API.
     """
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
-
-    response = model.generate_content(
-        [SYSTEM_PROMPT, f"Resume text to parse:\n\n{raw_text}"],
-        generation_config=genai.types.GenerationConfig(
-            temperature=0.1,  # Low temperature for deterministic extraction
-            max_output_tokens=4096,
-        ),
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1",
     )
 
-    response_text = response.text.strip()
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": f"Resume text to parse:\n\n{raw_text}"},
+            ],
+            temperature=0.1,
+            max_tokens=4096,
+        )
+    except Exception as e:
+        logger.error(f"Groq API error: {e}", exc_info=True)
+        raise RuntimeError(f"Groq API call failed: {str(e)}")
 
-    # Strip markdown fences if the model wraps them anyway
+    response_text = response.choices[0].message.content.strip()
+
+    # Strip markdown fences if the model wraps them
     if response_text.startswith("```"):
         response_text = re.sub(r"^```(?:json)?\s*", "", response_text)
         response_text = re.sub(r"\s*```$", "", response_text)
@@ -154,14 +166,14 @@ def parse_resume_with_llm(raw_text: str, api_key: str, model_name: str = "gemini
 #  Main Entry Point
 # ─────────────────────────────────────────────────────────────
 
-def parse_resume(file_bytes: bytes, filename: str, gemini_api_key: Optional[str] = None) -> dict:
+def parse_resume(file_bytes: bytes, filename: str, groq_api_key: Optional[str] = None) -> dict:
     """
     Parse a resume file and return structured data.
     
     Args:
         file_bytes: Raw file content
         filename: Original filename (used to detect type)
-        gemini_api_key: Google Gemini API key (required for PDF/DOCX)
+        groq_api_key: Groq API key (required for PDF/DOCX)
     
     Returns:
         Structured resume dict matching the ParsedResume schema
@@ -185,10 +197,10 @@ def parse_resume(file_bytes: bytes, filename: str, gemini_api_key: Optional[str]
             "The file may be scanned/image-based or empty."
         )
 
-    if not gemini_api_key:
+    if not groq_api_key:
         raise ValueError(
-            "GEMINI_API_KEY is required for PDF/DOCX parsing. "
+            "GROQ_API_KEY is required for PDF/DOCX parsing. "
             "Set it in backend/.env"
         )
 
-    return parse_resume_with_llm(raw_text, gemini_api_key)
+    return parse_resume_with_llm(raw_text, groq_api_key)

@@ -4,6 +4,7 @@ routers/resume_router.py — Resume upload & parsing endpoint.
 POST /api/resumes/parse
   - Accepts: PDF, DOCX, JSON (multipart/form-data)
   - Returns: Structured resume data as JSON
+  - Uses Groq (Llama 3.3 70B) for PDF/DOCX parsing
   - No file storage — parse and discard
 """
 import os
@@ -24,7 +25,7 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
     """
     Upload a resume file (PDF, DOCX, or JSON) and get structured data back.
     
-    - **PDF/DOCX**: Text is extracted and sent to Google Gemini for parsing.
+    - **PDF/DOCX**: Text is extracted and sent to Groq (Llama 3.3) for parsing.
     - **JSON**: Directly validated against the expected schema (no LLM needed).
     
     Returns the parsed resume as a JSON object.
@@ -59,14 +60,14 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
             detail="Uploaded file is empty.",
         )
 
-    # Get Gemini API key (only required for PDF/DOCX)
-    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    # Get Groq API key (only required for PDF/DOCX)
+    groq_api_key = os.getenv("GROQ_API_KEY")
 
     try:
         parsed_data = parse_resume(
             file_bytes=file_bytes,
             filename=file.filename,
-            gemini_api_key=gemini_api_key,
+            groq_api_key=groq_api_key,
         )
     except ValueError as e:
         raise HTTPException(
@@ -80,3 +81,4 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
         )
 
     return parsed_data
+
