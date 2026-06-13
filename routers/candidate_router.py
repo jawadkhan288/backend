@@ -24,12 +24,21 @@ router = APIRouter(
 # ─────────────────────────────────────────────────────────────
 
 @router.get("/", response_model=List[CandidateOut])
-async def list_candidates(db: AsyncSession = Depends(get_db)):
-    """Return all candidates ordered by applied date descending."""
-    result = await db.execute(
-        select(Candidate).order_by(Candidate.applied_date.desc(), Candidate.id.desc())
-    )
-    return result.scalars().all()
+async def list_candidates(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Return candidates. HR gets all. Candidates get only their own record."""
+    if current_user.role in ("hr", "admin"):
+        result = await db.execute(
+            select(Candidate).order_by(Candidate.applied_date.desc(), Candidate.id.desc())
+        )
+        return result.scalars().all()
+    else:
+        result = await db.execute(
+            select(Candidate).where(Candidate.email == current_user.email)
+        )
+        return result.scalars().all()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -37,9 +46,18 @@ async def list_candidates(db: AsyncSession = Depends(get_db)):
 # ─────────────────────────────────────────────────────────────
 
 @router.post("/", response_model=CandidateOut, status_code=status.HTTP_201_CREATED)
-async def create_candidate(payload: CandidateCreate, db: AsyncSession = Depends(get_db)):
+async def create_candidate(
+    payload: CandidateCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     """Create a new candidate record."""
-    # Validate status value
+    if current_user.role not in ("hr", "admin") and payload.email != current_user.email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Candidates can only create their own records.",
+        )
+
     try:
         status_enum = CandidateStatus(payload.status)
     except ValueError:
@@ -56,6 +74,8 @@ async def create_candidate(payload: CandidateCreate, db: AsyncSession = Depends(
         ai_score=payload.ai_score,
         experience=payload.experience,
         skills=payload.skills,
+        education=payload.education or [],
+        certifications=payload.certifications or [],
         status=status_enum,
         avatar=payload.avatar,
         applied_date=payload.applied_date,
@@ -72,8 +92,12 @@ async def create_candidate(payload: CandidateCreate, db: AsyncSession = Depends(
 # ─────────────────────────────────────────────────────────────
 
 @router.get("/{candidate_id}", response_model=CandidateOut)
-async def get_candidate(candidate_id: int, db: AsyncSession = Depends(get_db)):
-    """Fetch a single candidate by ID."""
+async def get_candidate(
+    candidate_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Fetch a single candidate by ID with permission checks."""
     result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
     candidate = result.scalar_one_or_none()
 
@@ -81,6 +105,12 @@ async def get_candidate(candidate_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Candidate with id={candidate_id} not found.",
+        )
+
+    if current_user.role not in ("hr", "admin") and candidate.email != current_user.email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You can only view your own candidate profile.",
         )
     return candidate
 
@@ -93,9 +123,10 @@ async def get_candidate(candidate_id: int, db: AsyncSession = Depends(get_db)):
 async def update_candidate(
     candidate_id: int,
     payload: CandidateUpdate,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update candidate fields (partial update — only non-None fields are applied)."""
+    """Update candidate fields with permission checks."""
     result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
     candidate = result.scalar_one_or_none()
 
@@ -103,6 +134,12 @@ async def update_candidate(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Candidate with id={candidate_id} not found.",
+        )
+
+    if current_user.role not in ("hr", "admin") and candidate.email != current_user.email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You can only update your own candidate profile.",
         )
 
     update_data = payload.model_dump(exclude_none=True)
@@ -122,9 +159,16 @@ async def update_candidate(
 async def update_candidate_status(
     candidate_id: int,
     payload: CandidateStatusUpdate,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update only the pipeline status of a candidate (used by Kanban drag-and-drop)."""
+    """Update only the pipeline status of a candidate (restricted to HR)."""
+    if current_user.role not in ("hr", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Only HR users can update pipeline statuses.",
+        )
+
     result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
     candidate = result.scalar_one_or_none()
 
@@ -152,8 +196,18 @@ async def update_candidate_status(
 # ─────────────────────────────────────────────────────────────
 
 @router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_candidate(candidate_id: int, db: AsyncSession = Depends(get_db)):
-    """Permanently delete a candidate record."""
+async def delete_candidate(
+    candidate_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Permanently delete a candidate record (restricted to HR)."""
+    if current_user.role not in ("hr", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Only HR users can delete candidates.",
+        )
+
     result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
     candidate = result.scalar_one_or_none()
 
@@ -165,3 +219,4 @@ async def delete_candidate(candidate_id: int, db: AsyncSession = Depends(get_db)
 
     await db.delete(candidate)
     await db.commit()
+

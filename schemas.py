@@ -29,6 +29,12 @@ class UserOut(BaseModel):
     id: UUID
     email: EmailStr
     full_name: Optional[str] = None
+    role: str
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    job_title: Optional[str] = None
+    bio: Optional[str] = None
+    avatar: Optional[str] = None
     is_active: bool
     created_at: datetime
 
@@ -51,6 +57,8 @@ class CandidateCreate(BaseModel):
     ai_score: int = Field(default=0, ge=0, le=100)
     experience: Optional[str] = None
     skills: List[str] = Field(default_factory=list)
+    education: Optional[List[dict]] = Field(default_factory=list)
+    certifications: Optional[List[str]] = Field(default_factory=list)
     status: str = Field(default="Applied")
     avatar: Optional[str] = None
     applied_date: Optional[date] = None
@@ -65,6 +73,8 @@ class CandidateUpdate(BaseModel):
     ai_score: Optional[int] = Field(default=None, ge=0, le=100)
     experience: Optional[str] = None
     skills: Optional[List[str]] = None
+    education: Optional[List[dict]] = None
+    certifications: Optional[List[str]] = None
     avatar: Optional[str] = None
     match_reasons: Optional[List[str]] = None
 
@@ -84,9 +94,73 @@ class CandidateOut(BaseModel):
     ai_score: int
     experience: Optional[str] = None
     skills: List[str] = []
+    education: Optional[List[dict]] = []
+    certifications: Optional[List[str]] = []
     status: str
     avatar: Optional[str] = None
     applied_date: date
     match_reasons: Optional[List[str]] = []
     created_at: datetime
     updated_at: datetime
+
+
+# ─────────────────────────────────────────────────────────────
+#  Interview Schemas
+# ─────────────────────────────────────────────────────────────
+
+class InterviewCreate(BaseModel):
+    candidate_name: str = Field(min_length=1)
+    candidate_email: EmailStr
+    position: str = Field(min_length=1)
+    date: str = Field(min_length=1)
+    time: str = Field(min_length=1)
+    duration: str = Field(min_length=1)
+    type: str = Field(min_length=1)
+    interviewer: str = Field(min_length=1)
+    meeting_link: Optional[str] = None
+    avatar: Optional[str] = None
+
+
+class InterviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    candidate_name: str
+    candidate_email: str
+    position: str
+    date: str
+    time: str
+    duration: str
+    type: str
+    interviewer: str
+    meeting_link: Optional[str] = None
+    avatar: Optional[str] = None
+    created_at: datetime
+
+
+# ─────────────────────────────────────────────────────────────
+#  Notification Schemas
+# ─────────────────────────────────────────────────────────────
+
+class NotificationCreate(BaseModel):
+    user_id: UUID
+    title: str = Field(min_length=1)
+    message: str = Field(min_length=1)
+    type: str = "info"
+
+
+class NotificationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: UUID
+    title: str
+    message: str
+    type: str
+    is_read: bool
+    created_at: datetime
+
+
+class NotificationUpdate(BaseModel):
+    is_read: bool
+
